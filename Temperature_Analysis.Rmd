@@ -1,0 +1,190 @@
+Nguồn dữ liệu: "https://www.kaggle.com/datasets/berkeleyearth/climate-change-earth-surface-temperature-data"
+
+# Thư viện sử dụng
+```{r library, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tseries)
+library(forecast)
+library(lubridate) 
+library(TSA)
+```
+
+# Tải dữ liệu + đọc thông tin dữ liệu
+```{r read_data, message=FALSE, warning=FALSE}
+raw_data <- read.csv("GlobalTemperatures.csv") # Đưa dữ liệu vào
+str(raw_data)
+```
+
+# Đổi định dạng ngày tháng
+```{r}
+raw_data$dt <- as.Date(raw_data$dt, format='%Y-%m-%d') # Chuyển định dạng dt sang Date
+str(raw_data$dt) #kiểm tra lại kiểu
+```
+
+# Lọc chỉ lấy dữ liệu từ năm 1950 trở về sau
+```{r}
+cleaned_data = raw_data %>%
+  filter(year(dt) >= 1850)
+```
+
+# Kiểm tra các cột có tồn tại giá trị còn thiếu không
+```{r}
+# Xử lý giá trị thiếu
+sum(is.na(cleaned_data$LandAverageTemperature))
+sum(is.na(cleaned_data$LandAverageTemperatureUncertainty))
+sum(is.na(cleaned_data$LandMaxTemperature))
+sum(is.na(cleaned_data$LandMaxTemperatureUncertainty))
+sum(is.na(cleaned_data$LandMinTemperature))
+sum(is.na(cleaned_data$LandMinTemperatureUncertainty))
+sum(is.na(cleaned_data$LandAndOceanAverageTemperature))
+sum(is.na(cleaned_data$LandAndOceanAverageTemperatureUncertainty))
+```
+
+# Lấy dữ liệu từ cột LandAverageTemperature vào một biến riêng
+```{r}
+# Chuyển đổi sang đối tượng Time Series(ts)
+temp_ts <- ts(cleaned_data$LandAverageTemperature, start = c(1850, 1), frequency = 12)
+print(temp_ts)
+```
+
+# Kiểm tra biểu đồ phân rã
+```{r}
+temp_decomp = stl(temp_ts, s.window = 'periodic')
+
+autoplot(temp_decomp)+
+  ggtitle('Phân rã chuỗi thời gian nhiệt độ (Trend, Seasonality, Remainder)')+
+  theme_minimal()
+```
+# Kiểm tra ACF, PACF và Dickey-Fuller
+```{r}
+ggtsdisplay(temp_ts, main='ACF và PACF của chuỗi nhiệt độ gốc')
+
+adf.test(temp_ts, alternative='stationary')
+```
+# Sử dụng sai phân Lag=12 loại bỏ tính mùa vụ
+```{r}
+# loại bỏ tính mùa vụ
+diff_seasonal_temp = diff(temp_ts, lag=12)
+
+ggtsdisplay(diff_seasonal_temp, main='Loại bỏ tính mùa vụ')
+```
+
+# Dùng sai phân Lag=1 bỏ xu hướng
+```{r}
+# Thử nghiệm sai phân loại bỏ xu hướng
+temp_stat = diff(diff_seasonal_temp)
+
+ggtsdisplay(temp_stat, main='ACF và PACF loại bỏ mùa vụ và lấy sai phân')
+```
+
+#Kiểm tra Dickey-Fuller của d=0 và d=1
+```{r}
+cat('\n----------Dickey-Fuller của dữ liệu d=0----------\n')
+adf.test(diff_seasonal_temp, alternative='stationary')
+cat('\n----------Dickey-Fuller của dữ liệu d=1----------\n')
+adf.test(temp_stat, alternative='stationary')
+```
+# Đề xuất mô hình + kiểm tra AIC và BIC
+```{r}
+model_A = Arima(temp_ts, order=c(2,0,0), seasonal=c(0,1,1))
+model_B = Arima(temp_ts, order=c(1,0,1), seasonal=c(0,1,1))
+model_C = Arima(temp_ts, order=c(2,0,0), seasonal=c(1,1,1))
+model_D = Arima(temp_ts, order=c(1,0,1), seasonal=c(1,1,1))
+model_E = Arima(temp_ts, order=c(2,1,1), seasonal=c(0,1,1))
+model_F = Arima(temp_ts, order=c(2,1,1), seasonal=c(1,1,1))
+
+results = data.frame(
+  Model = c("SARIMA(2,0,0)(0,1,1)", "SARIMA(1,0,1)(0,1,1)", "SARIMA(2,0,0)(1,1,1)", "SARIMA(1,0,1)(1,1,1)", 'SARIMA(2,1,1)(0,1,1)', 'SARIMA(2,1,1)(1,1,1)'),
+  AIC = c(model_A$aic, model_B$aic, model_C$aic, model_D$aic, model_E$aic, model_F$aic),
+  BIC = c(model_A$bic, model_B$bic, model_C$bic, model_D$bic, model_E$bic, model_F$bic)
+)
+
+print(results)
+```
+
+# Ước lượng tham số của các mô hình
+```{r}
+cat('\n--------------------------\n')
+model_A
+cat('\n--------------------------\n')
+model_B
+cat('\n--------------------------\n')
+model_C
+cat('\n--------------------------\n')
+model_D
+cat('\n--------------------------\n')
+model_E
+cat('\n--------------------------\n')
+model_F
+cat('\n--------------------------\n')
+```
+
+# Kiểm tra phần dư của mô hình phù hợp nhất bao gồm ACF + Ljung-Box
+```{r}
+tsdiag(model_E)
+```
+
+# Histogram + Q-Q Plot
+```{r}
+par(mfrow=c(1,2))
+
+hist(model_E$residuals, 
+     col='blue',
+     main='Histogram của SARIMA(2,1,1)(0,1,1)',
+     xlab='Phần dư',
+     probability=TRUE
+)
+lines(density(model_E$residuals, col='red', lwd=2))
+
+qqnorm(model_E$residuals, main='Biểu đồ Q-Q của phần dư', col='blue')
+qqline(model_E$residuals, col='red', lwd=2)
+```
+
+# Kiểm định Shapiro-Wilk
+```{r}
+shapiro.test(model_E$residuals)
+```
+
+# Chia dữ liệu + kiểm tra dự báo
+```{r}
+# Tập Train: 1950 - 2010
+train_data <- window(temp_ts, end = c(2010, 12))
+
+# Tập Test: 2011 - 2015 (để đối chiếu)
+test_data <- window(temp_ts, start = c(2011, 1))
+
+# Huấn luyện mô hình trên tập Train
+# Thêm chu kỳ [12] vào phần seasonal để phù hợp với mô hình `auto.arima` đã tìm ra
+final_model <- Arima(train_data, order = c(2,1,1), seasonal=c(0,1,1))
+
+# Dự báo 60 tháng (5 năm từ 2011 đến 2015)
+forecast_test <- forecast(final_model, h = 60)
+
+# Vẽ Biểu đồ
+plot(forecast_test, include=36, main = "Kiểm chứng mô hình: Dự báo vs Thực tế (2011-2015)", PI=FALSE)
+lines(test_data, col='red', lwd = 2)
+
+# Đặt chú thích nằm ngang (horiz = TRUE)
+legend("top", legend = c("Dự báo", "Thực tế"),
+      col = c("blue", "red"), lty = 1, lwd = 2,
+      horiz = TRUE, bty = "n", cex = 0.8) # cex giảm kích thước chữ
+```
+
+# Tính sai số giữa dự báo và thực tế
+```{r}
+# Tính toán sai số thực tế
+library(knitr)
+acc_results <- accuracy(forecast_test, test_data)
+kable(acc_results, caption = "Bảng so sánh sai số giữa tập Train và tập Test")
+```
+# các chỉ số trong bảng Accuracy
+ME (Mean Error): Sai số trung bình.
+
+RMSE (Root Mean Squared Error): Độ lệch tiêu chuẩn của sai số (càng nhỏ càng tốt).
+
+MAE (Mean Absolute Error): Sai số tuyệt đối trung bình.
+
+MAPE (Mean Absolute Percentage Error): Sai số phần trăm tuyệt đối trung bình. (Dưới 10% là dự báo cực tốt).
+
+Theil's U: So sánh với dự báo ngẫu nhiên. (U < 1 là mô hình có giá trị sử dụng).
+

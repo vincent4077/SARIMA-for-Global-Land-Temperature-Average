@@ -8,8 +8,8 @@
 <p align='center'><i>Kết quả đọc thông tin dữ liệu</i></p>
 
 Bộ dữ liệu nhiệt độ toàn cầu được sử dụng trong bài phân tích bao gồm 9 biến quan sát. Trong đó, biến thời gian “dt” hiện được lưu trữ dưới dạng chuỗi ký tự (character) và 8 biến còn lại có kiểu dữ liệu số (numeric). Do đặc thù của bài toán phân tích chuỗi thời gian, biến “dt” cần được chuyển đổi sang định dạng ngày tháng (date) chuẩn hóa để thiết lập trục thời gian. Bên cạnh đó, tập dữ liệu ghi nhận tỷ lệ thiếu dữ liệu tương đối cao ở một số biến, do vậy, việc áp dụng các kỹ thuật tiền xử lý phù hợp là cần thiết trước khi tiến hành các bước phân tích.
-###Tiền xử lý dữ liệu
-<div>
+### Tiền xử lý dữ liệu
+<div align='center'>
   <img width="609" height="112" alt="image" src="https://github.com/user-attachments/assets/3aecfa7a-133a-4881-abc9-1d636adeabc2" />
 </div>
 <p align='center'><i>Kết quả xử lý kiểu dữ liệu ngày tháng năm</i></p>

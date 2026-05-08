@@ -51,6 +51,28 @@ Thông qua biểu đồ phân rã, dữ liệu được chia ra thành 4 biểu 
 
 Bên cạnh thành phần mùa vụ và xu hướng, nhiễu trắng (hay phần dư) trong biểu đồ  phần lớn dao động ổn định quanh mức 0 với biên độ nhỏ cho thấy yếu tố mùa vụ và xu hướng chi phối nền tảng của bộ dữ liệu. Mặc dù vậy trong nhiễu trắng vẫn xuất hiện một số điểm cực trị bất thường xuất hiện phản ánh các yếu tố khí hậu biến động ngẫu nhiên xuất hiện bất ngờ trong một khoảng thời gian ngắn.
 
+Hình phía dưới là hai đồ thị ACF(bên trái) và PACF(bên phải) của dữ liệu khi chưa sử dụng các phép  biến đổi. Trong đồ thị ACF ta dễ dàng nhận thấy sự đi lên và đi xuống liên tục của biểu đồ cho thấy tính mùa vụ của chuỗi dữ liệu thời gian. Mặt khác với đồ thị PACF ta có thể thấy một hệ số tương quan rất lớn xuất hiện tại lag 1 và giảm chậm dần củng cố cho yếu tố xu hướng của dữ liệu.
 
+<div align='center'>
+  <img width="605" height="364" alt="image" src="https://github.com/user-attachments/assets/92a0946a-0ff4-4d13-8d34-76256d4ddbb8" />
+</div>
+<p align='center'><i>Biểu đồ AFC và PACF</i></p>
 
+Bằng việc quan sát hai đồ thị ACF và PACF, chuỗi dữ liệu thời gian hiện tại có thể nói rằng dữ liệu chưa có tính dừng. Tuy nhiên để có một cái nhìn đa chiều chúng ta sẽ sử dụng Dickey Fuller để kiểm tra tính dừng của dữ liệu
 
+<div align='center'>
+  <img width="604" height="131" alt="image" src="https://github.com/user-attachments/assets/bcda46a9-dc85-4d13-a7ef-7fa69ce96d96" />
+</div>
+<p align='center'><i>Kiểm tra Dickey-Fuller</i></p>
+
+Với kiểm tra Dickey Fuller, kết quả hoàn toàn ngược lại khi chúng ta quan sát bằng biểu đồ ACF và PACF. Điều này dẫn tới khả năng dữ liệu có tính dừng nhưng bị ảnh hưởng mạnh bởi yếu tố mùa vụ. Tuy nhiên cũng không loại trừ trường hợp kết quả bị trái ngược do xu hướng đi lên của dữ liệu chưa thực sự quá rõ ràng. Dù trong trường hợp nào, dữ liệu cũng bị ảnh hưởng mạnh mẽ bởi tính mùa vụ vì vậy mô hình SARIMA là phù hợp với bài toán. Đồng thời để đảm bảo tính chính xác trong việc xác định tham số mô hình, xem xét các trường hợp khác nhau là điều cần thiết trong việc biến đổi dữ liệu và xác định mô hình.
+
+### b. Biến đổi dữ liệu và đề xuất mô hình
+Dựa trên những gì đã phân tích sẽ đề xuất sử dụng hàm ```diff()``` của R để lấy sai phân cho hai trường hợp. Đầu tiên sẽ lấy sai phân mùa vụ ```diff(lag=12``` để loại bỏ yếu tố mùa vụ vì dữ liệu phân tích nặng tính mùa vụ. Với trường hợp đầu tiên sẽ chỉ sai phân một lần duy nhất để loại bỏ mùa vụ vì dựa trên kiểm tra Dickey-Fuller dữ liệu đã có tính dừng. Với trường hợp thứ hai sau khi đã loại bỏ mùa vụ sử dụng kết quả đó cùng hàm ```diff(lag=1)``` để loại bỏ xu hướng. Hai kết quả thu được sẽ được sử dụng để chọn tham số cho mô hình SARIMA.
+<p align='center'>
+  <img width="45%" height="449" alt="image" src="https://github.com/user-attachments/assets/8cd24f4b-3ddb-4ac8-b5d4-328a2d37f2bf" />
+  <img width="45%" height="473" alt="image" src="https://github.com/user-attachments/assets/3f328a7f-b335-4b84-99cf-18d78645121c" /> 
+</p>
+Mô hình SARIMA sẽ có dạng:
+<h3 align='center'><i>SARIMA(p,d,q)(P,D,Q)</i></h3>
+Trong đó (p,d,q) là các yếu tố ngắn hạn, còn (P,D,Q) là các yếu tố mùa vụ. Dựa trên phân tích ta sẽ có 2 trường hợp d=0, D=1 cho trường hợp chỉ sai phân mùa vụ và d=1, D=1 cho trường hợp sai phân 2 lần. 

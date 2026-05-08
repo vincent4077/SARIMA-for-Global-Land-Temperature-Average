@@ -1,6 +1,6 @@
 # 🌡️ Phân tích & Dự báo Nhiệt độ Toàn cầu (Berkeley Earth) với SARIMA
 
-Dự án thực hiện phân tích chuỗi thời gian (Time Series Analysis) trên bộ dữ liệu nhiệt độ đất liền toàn cầu từ Berkeley Earth, nhằm xây dựng mô hình dự báo biến động khí hậu chính xác.
+Dự án thực hiện phân tích chuỗi thời gian (Time Series Analysis) trên bộ dữ liệu nhiệt độ đất liền toàn cầu từ Berkeley Earth, nhằm xây dựng mô hình dự báo biến động khí hậu chính xác. Chi tiết phân tích xem trong file `Detail_Analysis.docx`
 
 ---
 
